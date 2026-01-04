@@ -1,5 +1,6 @@
 const std = @import("std");
 const rl = @import("raylib");
+const vec = @import("Vector.zig");
 
 const Tower = @import("tower.zig").Tower;
 const Enemy = @import("enemy.zig").Enemy;
@@ -18,19 +19,29 @@ pub fn Map(width: usize) type {
             };
         }
 
-        pub fn get_mouse_tile_position(_: *@This(), camera: rl.Camera2D) struct { x: usize, y: usize } {
+        pub fn get_mouse_tile_position(_: *@This(), camera: rl.Camera2D) vec.Vector2i32 {
             return .{
                 .x = @intFromFloat(rl.getScreenToWorld2D(rl.getMousePosition(), camera).x / 64.0),
                 .y = @intFromFloat(rl.getScreenToWorld2D(rl.getMousePosition(), camera).y / 64.0),
             };
         }
 
-        pub fn add_tower(self: *@This(), tower: Tower, x: usize, y: usize) void {
+        pub fn add_tower(self: *@This(), tower: Tower, pos: vec.Vector2i32) void {
+            if (pos.x < 0 or pos.x >= width or pos.y < 0 or pos.y >= width) {
+                return;
+            }
+            const x: usize = @intCast(pos.x);
+            const y: usize = @intCast(pos.y);
             const index = (y * width) + x;
             self.towers[index] = tower;
         }
 
-        pub fn add_enemy(self: *@This(), enemy: Enemy, x: usize, y: usize) void {
+        pub fn add_enemy(self: *@This(), enemy: Enemy, pos: vec.Vector2i32) void {
+            if (pos.x < 0 or pos.x >= width or pos.y < 0 or pos.y >= width) {
+                return;
+            }
+            const x: usize = @intCast(pos.x);
+            const y: usize = @intCast(pos.y);
             const index = (y * width) + x;
             self.enemies[index] = enemy;
         }
@@ -42,12 +53,55 @@ pub fn Map(width: usize) type {
         pub fn put_build_template(self: *@This(), camera: rl.Camera2D) void {
             const world_position = rl.getScreenToWorld2D(rl.getMousePosition(), camera);
             self.build_position = world_position;
-            std.debug.print("pos = {any}\n", .{self.build_position});
         }
 
-        pub fn can_place_tile(self: *@This(), x: i32, y: i32) bool {
-            const left_index = (y * width) + x;
-            const left = self.towers[left_index];
+        pub fn can_place_tile(self: *@This(), pos: vec.Vector2i32) bool {
+            const x: i32 = pos.x;
+            const y: i32 = pos.y;
+            const size: i32 = @intCast(width);
+
+            if (x < 0 or x >= width or y < 0 or y >= width) {
+                return false;
+            }
+
+            const left_index: usize = @intCast(@max((y * size) + (x - 1), 0));
+            const right_index: usize = @intCast(@min((y * size) + (x + 1), size - 1));
+            const up_index: usize = @intCast(@max(((y - 1) * size) + x, 0));
+            const down_index: usize = @intCast(@min(((y + 1) * size) + x, size - 1));
+
+            var left = self.towers[left_index];
+            if (x == 0) {
+                left = null;
+            }
+            if (left) |_| {
+                return true;
+            }
+
+            var right = self.towers[right_index];
+            if (x == width - 1) {
+                right = null;
+            }
+            if (right) |_| {
+                return true;
+            }
+
+            var up = self.towers[up_index];
+            if (y == 0) {
+                up = null;
+            }
+            if (up) |_| {
+                return true;
+            }
+
+            var down = self.towers[down_index];
+            if (y == width - 1) {
+                down = null;
+            }
+            if (down) |_| {
+                return true;
+            }
+
+            return false;
         }
 
         pub fn next_turn(self: *@This()) void {

@@ -38,7 +38,9 @@ pub fn main() void {
 }
 
 fn setup() void {
-    map.add_enemy(.init(.red), 3, 3);
+    map.add_enemy(.init(.red), .{ .x = 3, .y = 3 });
+
+    map.add_tower(.init(.green), .{ .x = 8, .y = 7 });
 }
 
 fn process(delta: f32) void {
@@ -47,8 +49,11 @@ fn process(delta: f32) void {
 
     if (rl.isMouseButtonReleased(.left) and builds > 0) {
         const tile_position = map.get_mouse_tile_position(camera);
-        map.add_tower(.init(.green), tile_position.x, tile_position.y);
-        builds = builds - 1;
+        const can_build = map.can_place_tile(tile_position);
+        if (can_build == true) {
+            map.add_tower(.init(.green), tile_position);
+            builds = builds - 1;
+        }
     }
 
     if (rl.isKeyReleased(.space)) {
