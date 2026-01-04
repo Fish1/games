@@ -18,6 +18,13 @@ pub fn Map(width: usize) type {
             };
         }
 
+        pub fn get_mouse_tile_position(_: *@This(), camera: rl.Camera2D) struct { x: usize, y: usize } {
+            return .{
+                .x = @intFromFloat(rl.getScreenToWorld2D(rl.getMousePosition(), camera).x / 64.0),
+                .y = @intFromFloat(rl.getScreenToWorld2D(rl.getMousePosition(), camera).y / 64.0),
+            };
+        }
+
         pub fn add_tower(self: *@This(), tower: Tower, x: usize, y: usize) void {
             const index = (y * width) + x;
             self.towers[index] = tower;
@@ -36,6 +43,11 @@ pub fn Map(width: usize) type {
             const world_position = rl.getScreenToWorld2D(rl.getMousePosition(), camera);
             self.build_position = world_position;
             std.debug.print("pos = {any}\n", .{self.build_position});
+        }
+
+        pub fn can_place_tile(self: *@This(), x: i32, y: i32) bool {
+            const left_index = (y * width) + x;
+            const left = self.towers[left_index];
         }
 
         pub fn next_turn(self: *@This()) void {
