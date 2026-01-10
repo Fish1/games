@@ -1,7 +1,7 @@
 const std = @import("std");
 const rl = @import("raylib");
 
-const Map = @import("map.zig").Map(100);
+const game = @import("game.zig");
 
 var camera = rl.Camera2D{
     .offset = .{
@@ -16,19 +16,12 @@ var camera = rl.Camera2D{
     .zoom = 0.5,
 };
 
-var map = Map.init();
-var lives: u32 = 3;
-var builds: u32 = 1;
-
 pub fn main() void {
-    const width = 800;
-    const height = 450;
-
-    rl.initWindow(width, height, "Raylib Test1");
+    rl.initWindow(800, 450, "Raylib Test1");
     defer rl.closeWindow();
     rl.setTargetFPS(60);
 
-    setup();
+    game.setup();
 
     while (rl.windowShouldClose() == false) {
         const delta = rl.getFrameTime();
@@ -37,30 +30,9 @@ pub fn main() void {
     }
 }
 
-fn setup() void {
-    map.add_enemy(.init(.red), .{ .x = 3, .y = 3 });
-
-    map.add_tower(.init(.green), .{ .x = 8, .y = 7 });
-}
-
 fn process(delta: f32) void {
     control_camera(delta);
-    map.process(camera);
-
-    if (rl.isMouseButtonReleased(.left) and builds > 0) {
-        const tile_position = map.get_mouse_tile_position(camera);
-        const can_build = map.can_place_tile(tile_position);
-        if (can_build == true) {
-            map.add_tower(.init(.green), tile_position);
-            builds = builds - 1;
-        }
-    }
-
-    if (rl.isKeyReleased(.space)) {
-        map.next_turn();
-        lives = lives + 1;
-        builds = 1;
-    }
+    game.process(delta, camera);
 }
 
 fn control_camera(delta: f32) void {
@@ -92,22 +64,9 @@ fn draw() void {
     rl.beginMode2D(camera);
 
     rl.clearBackground(.black);
-    map.draw();
+    game.draw();
 
     rl.endMode2D();
     rl.drawText("Press space for next turn...", 5, 5, 24, .white);
-    draw_lives();
-    draw_builds();
-}
-
-fn draw_lives() void {
-    var buffer: [24]u8 = undefined;
-    const result = std.fmt.bufPrintZ(&buffer, "Lives: {d}", .{lives}) catch unreachable;
-    rl.drawText(result, 5, 48, 24, .white);
-}
-
-fn draw_builds() void {
-    var buffer: [24]u8 = undefined;
-    const result = std.fmt.bufPrintZ(&buffer, "Builds: {d}", .{builds}) catch unreachable;
-    rl.drawText(result, 5, 48 + 24, 24, .white);
+    game.draw_ui();
 }

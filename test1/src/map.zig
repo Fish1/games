@@ -2,8 +2,14 @@ const std = @import("std");
 const rl = @import("raylib");
 const vec = @import("Vector.zig");
 
-const Tower = @import("tower.zig").Tower;
 const Enemy = @import("enemy.zig").Enemy;
+const EnemyType = enum(i8) { Basic };
+const BasicEnemy = Enemy.init(.red);
+
+const Tower = @import("tower.zig").Tower;
+const Basic = Tower.init(.white, 2, 2);
+const Fast = Tower.init(.green, 1, 1);
+const Strong = Tower.init(.blue, 3, 5);
 
 pub fn Map(width: usize) type {
     return struct {
@@ -13,10 +19,11 @@ pub fn Map(width: usize) type {
         build_position: rl.Vector2 = rl.Vector2{ .x = 0, .y = 0 },
 
         pub fn init() @This() {
-            return @This(){
+            const x = @This(){
                 .towers = std.mem.zeroes([width * width]?Tower),
                 .enemies = std.mem.zeroes([width * width]?Enemy),
             };
+            return x;
         }
 
         pub fn get_mouse_tile_position(_: *@This(), camera: rl.Camera2D) vec.Vector2i32 {
@@ -65,9 +72,9 @@ pub fn Map(width: usize) type {
             }
 
             const left_index: usize = @intCast(@max((y * size) + (x - 1), 0));
-            const right_index: usize = @intCast(@min((y * size) + (x + 1), size - 1));
+            const right_index: usize = @intCast(@min((y * size) + (x + 1), (size * size) - 1));
             const up_index: usize = @intCast(@max(((y - 1) * size) + x, 0));
-            const down_index: usize = @intCast(@min(((y + 1) * size) + x, size - 1));
+            const down_index: usize = @intCast(@min(((y + 1) * size) + x, (size * size) - 1));
 
             var left = self.towers[left_index];
             if (x == 0) {
