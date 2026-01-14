@@ -4,40 +4,65 @@ const Enemy = @import("enemy.zig").Enemy;
 const Direction = @import("direction.zig").Direction;
 const Action = @import("action.zig").Action;
 
+const EnemyTypes = @import("enemy_types.zig");
+
 const width = 14;
 const height = 4;
 const size = width * height;
 
-const RedEnemy = Enemy.init(0, 0, 0, .red);
-const GreenEnemy = Enemy.init(0, 0, 1, .green);
-const BlueEnemy = Enemy.init(0, 0, 2, .blue);
-
 pub const Map = struct {
-    enemies: [14 * 4 * 4]?Enemy = std.mem.zeroes([14 * 4 * 4]?Enemy),
+    prng: std.Random.DefaultPrng = undefined,
+    rand: std.Random = undefined,
+    enemies: [14 * 4 * 4]?Enemy = undefined,
+
+    spawn_time: f32 = undefined,
+    time: f32 = undefined,
 
     pub fn init() !@This() {
         var result: Map = .{};
 
-        // result.add_enemy(GreenEnemy.copy_to(14, 0));
-        result.add_enemy(RedEnemy.copy_to(14, 0));
-        result.add_enemy(RedEnemy.copy_to(14, 1));
-        result.add_enemy(RedEnemy.copy_to(14, 2));
-        result.add_enemy(RedEnemy.copy_to(14, 3));
-        result.add_enemy(RedEnemy.copy_to(15, 0));
+        result.spawn_time = 1.0;
+        result.time = 0.0;
 
-        result.add_enemy(RedEnemy.copy_to(0, 14));
-        result.add_enemy(GreenEnemy.copy_to(1, 14));
-        result.add_enemy(BlueEnemy.copy_to(2, 14));
+        result.enemies = std.mem.zeroes([14 * 4 * 4]?Enemy);
 
-        result.add_enemy(RedEnemy.copy_to(31, 14));
-        result.add_enemy(GreenEnemy.copy_to(30, 14));
-        result.add_enemy(BlueEnemy.copy_to(29, 14));
-
-        result.add_enemy(RedEnemy.copy_to(14, 31));
-        result.add_enemy(GreenEnemy.copy_to(14, 30));
-        result.add_enemy(BlueEnemy.copy_to(14, 29));
+        result.prng = .init(blk: {
+            var seed: u64 = undefined;
+            try std.posix.getrandom(std.mem.asBytes(&seed));
+            break :blk seed;
+        });
+        result.rand = result.prng.random();
 
         return result;
+    }
+
+    pub fn process(self: *@This(), delta: f32) void {
+        self.time = self.time + delta;
+        if (self.time >= self.spawn_time) {
+            self.time = 0.0;
+            const wall = self.rand.intRangeLessThan(i32, 0, 4);
+            const wall_part = self.rand.intRangeLessThan(i32, 0, 4);
+            const enemy_rand = self.rand.intRangeLessThan(i32, 0, 4);
+
+            var direction: Direction = undefined;
+            switch (wall) {
+                0 => direction = .left,
+                1 => direction = .up,
+                2 => direction = .right,
+                3 => direction = .down,
+                else => direction = .left,
+            }
+
+            var en: Enemy = undefined;
+            switch (enemy_rand) {
+                0 => en = EnemyTypes.RedEnemy,
+                1 => en = EnemyTypes.GreenEnemy,
+                2 => en = EnemyTypes.BlueEnemy,
+                3 => en = EnemyTypes.BlueEnemy,
+                else => en = EnemyTypes.RedEnemy,
+            }
+            self.spawn(direction, wall_part, en);
+        }
     }
 
     pub fn add_enemy(self: *@This(), enemy: Enemy) void {
@@ -50,27 +75,56 @@ pub const Map = struct {
         }
     }
 
-    pub fn spawn_up(self: *@This(), x: i32) void {
-        for (&self.enemies) |*_check_enemy| {
-            const check_enemy = _check_enemy.* orelse continue;
-            if (check_enemy.x != x or check_enemy.y > 14) {
-                continue;
+    pub fn spawn(self: *@This(), direction: Direction, wall_part: i32, enemy_copy: Enemy) void {
+        if (direction == .left) {
+            const y = 14 + wall_part;
+            for (&self.enemies) |*_check_enemy| {
+                const check_enemy = _check_enemy.* orelse continue;
+                if (check_enemy.y != y or check_enemy.x > 14) {
+                    continue;
+                }
+                if (_check_enemy.*) |*enemy| {
+                    enemy.*.x = enemy.*.x + 1;
+                }
             }
-            if (_check_enemy.*) |*enemy| {
-                enemy.*.y = enemy.*.y + 1;
+            self.add_enemy(enemy_copy.copy_to(0, y));
+        } else if (direction == .up) {
+            const x = 14 + wall_part;
+            for (&self.enemies) |*_check_enemy| {
+                const check_enemy = _check_enemy.* orelse continue;
+                if (check_enemy.x != x or check_enemy.y > 14) {
+                    continue;
+                }
+                if (_check_enemy.*) |*enemy| {
+                    enemy.*.y = enemy.*.y + 1;
+                }
             }
-            // _check_enemy.*.y = check_enemy.y + 1;
+            self.add_enemy(enemy_copy.copy_to(x, 0));
+        } else if (direction == .right) {
+            const y = 14 + wall_part;
+            for (&self.enemies) |*_check_enemy| {
+                const check_enemy = _check_enemy.* orelse continue;
+                if (check_enemy.y != y or check_enemy.x < 14) {
+                    continue;
+                }
+                if (_check_enemy.*) |*enemy| {
+                    enemy.*.x = enemy.*.x - 1;
+                }
+            }
+            self.add_enemy(enemy_copy.copy_to(31, y));
+        } else if (direction == .down) {
+            const x = 14 + wall_part;
+            for (&self.enemies) |*_check_enemy| {
+                const check_enemy = _check_enemy.* orelse continue;
+                if (check_enemy.x != x or check_enemy.y < 14) {
+                    continue;
+                }
+                if (_check_enemy.*) |*enemy| {
+                    enemy.*.y = enemy.*.y - 1;
+                }
+            }
+            self.add_enemy(enemy_copy.copy_to(x, 31));
         }
-        const new_enemy: Enemy = .{
-            .x = x,
-            .y = 0,
-            .px = x,
-            .py = 0,
-            .identifier = 2,
-            .color = .green,
-            .e = 1.0,
-        };
-        self.add_enemy(new_enemy);
     }
 
     pub fn remove_enemy(self: *@This(), x: i32, y: i32) void {

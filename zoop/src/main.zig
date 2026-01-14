@@ -6,9 +6,6 @@ const Map = @import("map.zig").Map;
 
 const tile_size = 64;
 
-var map: Map = Map.init() catch unreachable;
-var player: Player = .init();
-
 var camera: rl.Camera2D = .{
     .offset = .{
         .x = 0,
@@ -22,42 +19,41 @@ var camera: rl.Camera2D = .{
     .rotation = 0.0,
 };
 
-pub fn main() void {
+pub fn main() !void {
     std.debug.print("Zoop!\n", .{});
+
+    var map: Map = try Map.init();
+    var player: Player = .init();
 
     const width = 1024;
     const height = 1024;
 
-    rl.initWindow(width, height, "Zoot");
+    rl.initWindow(width, height, "Zoop!");
     defer rl.closeWindow();
     rl.setTargetFPS(60);
 
     while (rl.windowShouldClose() == false) {
-        process(rl.getFrameTime());
-        draw();
+        const delta = rl.getFrameTime();
+        process(&player, &map, delta);
+        draw(&player, &map);
     }
 }
 
-fn process(delta: f32) void {
-    player.process(&map, delta);
+fn process(player: *Player, map: *Map, delta: f32) void {
+    map.process(delta);
+    player.process(map, delta);
 }
 
-fn draw() void {
+fn draw(player: *Player, map: *Map) void {
     rl.beginDrawing();
     defer rl.endDrawing();
 
     rl.beginMode2D(camera);
     rl.clearBackground(.black);
     draw_player_map();
-    draw_player();
+    player.draw();
     map.draw();
     rl.endMode2D();
-}
-
-fn draw_player() void {
-    const rx = ease.ease(player.animation, @floatFromInt(player.px), @floatFromInt(player.x), player.e) * tile_size;
-    const ry = ease.ease(player.animation, @floatFromInt(player.py), @floatFromInt(player.y), player.e) * tile_size;
-    rl.drawCircle(@intFromFloat(rx + 32), @intFromFloat(ry + 32), 32, player.color);
 }
 
 fn draw_player_map() void {

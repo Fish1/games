@@ -3,6 +3,7 @@ const std = @import("std");
 const Map = @import("map.zig").Map;
 const Animation = @import("ease.zig").Animation;
 const Action = @import("action.zig").Action;
+const ease = @import("ease.zig");
 
 const State = enum {
     player_control,
@@ -49,6 +50,12 @@ pub const Player = struct {
         }
     }
 
+    pub fn draw(self: @This()) void {
+        const rx = ease.ease(self.animation, @floatFromInt(self.px), @floatFromInt(self.x), self.e) * 64;
+        const ry = ease.ease(self.animation, @floatFromInt(self.py), @floatFromInt(self.y), self.e) * 64;
+        rl.drawCircle(@intFromFloat(rx + 32), @intFromFloat(ry + 32), 32, self.color);
+    }
+
     fn attack_init_state(self: *@This(), delta: f32) void {
         self.e = self.e + delta * 5;
         self.animation = .EaseInCubic;
@@ -78,6 +85,7 @@ pub const Player = struct {
                 self.color = enemy_color;
                 self.identifier = enemy_identifier;
             } else if (self.action == .score) {
+                std.debug.print("SCORE!\n", .{});
                 map.remove_enemies_between(self.x, self.y, self.px, self.py);
             }
         }
@@ -115,7 +123,6 @@ pub const Player = struct {
             self.px = self.x;
             self.y = self.y + 1;
             self.e = 0;
-            map.spawn_up(15);
         }
 
         if (rl.isKeyPressed(.a)) {
