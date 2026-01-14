@@ -1,0 +1,7 @@
+.{
+    .name = .test3_flecs,
+    .version = "0.0.1",
+    .minimum_zig_version = "0.15.2",
+    .paths = .{""},
+    .fingerprint = 0x3997e141aec63a9c,
+}
