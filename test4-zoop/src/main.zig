@@ -27,6 +27,7 @@ pub fn main() !void {
 
     rl.initWindow(width, height, "Zoop!");
     defer rl.closeWindow();
+    rl.initAudioDevice();
     rl.setTargetFPS(60);
 
     var map: Map = try Map.init();

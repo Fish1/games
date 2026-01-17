@@ -7,7 +7,10 @@ const ease = @import("ease.zig");
 
 const State = enum {
     player_control,
-    attack_init,
+
+    init_attack,
+    attack,
+
     init_attack_back,
     attack_back,
 };
@@ -28,15 +31,19 @@ pub const Player = struct {
 
     score: u64,
     player_texture: rl.Texture,
-    attack_texture: rl.Texture,
+    texture_index_count: i32,
+    texture_index_speed: f32,
+    texture_timer: f32,
+
+    score_sound: rl.Sound,
+    swap_sound: rl.Sound,
+    jump_sound: rl.Sound,
 
     pub fn init() !@This() {
-        var player_texture = try rl.loadTexture("./assets/player.png");
-        player_texture.width = 64;
-        player_texture.height = 64;
-        var attack_texture = try rl.loadTexture("./assets/attack.png");
-        attack_texture.width = 64;
-        attack_texture.height = 64;
+        const score_sound = try rl.loadSound("./assets/score.wav");
+        const swap_sound = try rl.loadSound("./assets/swap.wav");
+        const jump_sound = try rl.loadSound("./assets/jump.wav");
+        const player_texture = try rl.loadTexture("./assets/player.png");
         return .{
             .x = 16,
             .y = 16,
@@ -50,17 +57,27 @@ pub const Player = struct {
             .action = .score,
             .score = 0,
             .player_texture = player_texture,
-            .attack_texture = attack_texture,
+            .texture_index_count = 2,
+            .texture_index_speed = 0.7,
+            .texture_timer = 0.0,
+            .score_sound = score_sound,
+            .swap_sound = swap_sound,
+            .jump_sound = jump_sound,
         };
     }
 
     pub fn deinit(self: *@This()) void {
         rl.unloadTexture(self.player_texture);
+        rl.unloadSound(self.score_sound);
+        rl.unloadSound(self.swap_sound);
+        rl.unloadSound(self.jump_sound);
     }
 
     pub fn process(self: *@This(), map: *Map, delta: f32) void {
+        self.texture_timer = self.texture_timer + delta;
         switch (self.state) {
-            .attack_init => attack_init_state(self, delta),
+            .init_attack => init_attack_state(self, delta),
+            .attack => attack_state(self, delta),
             .init_attack_back => init_attack_back_state(self, map, delta),
             .attack_back => attack_back_state(self, delta),
             .player_control => player_control_state(self, map, delta),
@@ -70,14 +87,37 @@ pub const Player = struct {
     pub fn draw(self: @This()) void {
         const rx = ease.ease(self.animation, @floatFromInt(self.px), @floatFromInt(self.x), self.e) * 64;
         const ry = ease.ease(self.animation, @floatFromInt(self.py), @floatFromInt(self.y), self.e) * 64;
-        rl.drawCircle(@intFromFloat(rx + 32), @intFromFloat(ry + 32), 32, self.color);
-        rl.drawTexture(self.player_texture, @intFromFloat(rx), @intFromFloat(ry), self.color);
-        if (self.state == .attack_init or self.state == .attack_back) {
-            rl.drawTexture(self.attack_texture, @intFromFloat(rx), @intFromFloat(ry), self.color);
-        }
+
+        const texture_index_count_float: f32 = @floatFromInt(self.texture_index_count);
+        const texture_index_divisor = self.texture_index_speed / texture_index_count_float;
+
+        const t1: i32 = @intFromFloat(@divFloor(self.texture_timer, texture_index_divisor));
+        const texture_index = @mod(t1, self.texture_index_count);
+
+        const texture_color_index: i32 = self.identifier;
+
+        const source: rl.Rectangle = .{
+            .x = @floatFromInt(texture_index * 16),
+            .y = @floatFromInt(texture_color_index * 16),
+            .width = 16,
+            .height = 16,
+        };
+        const destination: rl.Rectangle = .{
+            .x = rx,
+            .y = ry,
+            .width = 64,
+            .height = 64,
+        };
+
+        rl.drawTexturePro(self.player_texture, source, destination, .zero(), 0.0, .white);
     }
 
-    fn attack_init_state(self: *@This(), delta: f32) void {
+    fn init_attack_state(self: *@This(), _: f32) void {
+        rl.playSound(self.jump_sound);
+        self.state = .attack;
+    }
+
+    fn attack_state(self: *@This(), delta: f32) void {
         self.e = self.e + delta * 5;
         self.animation = .EaseInCubic;
         if (self.e >= 1) {
@@ -105,9 +145,11 @@ pub const Player = struct {
                 enemy.*.identifier = self.identifier;
                 self.color = enemy_color;
                 self.identifier = enemy_identifier;
+                rl.playSound(self.swap_sound);
             } else if (self.action == .score) {
                 const score: u64 = @intCast(map.remove_enemies_between(self.x, self.y, self.px, self.py));
-                self.score = self.score + std.math.pow(u64, 3, score);
+                self.score = self.score + std.math.pow(u64, 3, score) + @divFloor(self.score, 10);
+                rl.playSound(self.score_sound);
             }
         }
         self.state = .attack_back;
@@ -154,7 +196,7 @@ pub const Player = struct {
             self.y = to.y;
             self.action = to.action;
             self.e = 0;
-            self.state = .attack_init;
+            self.state = .init_attack;
         } else if (rl.isKeyPressed(.s)) {
             self.px = self.x;
             self.py = self.y;
@@ -163,7 +205,7 @@ pub const Player = struct {
             self.y = to.y;
             self.action = to.action;
             self.e = 0;
-            self.state = .attack_init;
+            self.state = .init_attack;
         } else if (rl.isKeyPressed(.d)) {
             self.px = self.x;
             self.py = self.y;
@@ -172,7 +214,7 @@ pub const Player = struct {
             self.y = to.y;
             self.action = to.action;
             self.e = 0;
-            self.state = .attack_init;
+            self.state = .init_attack;
         } else if (rl.isKeyPressed(.w)) {
             self.px = self.x;
             self.py = self.y;
@@ -181,7 +223,7 @@ pub const Player = struct {
             self.y = to.y;
             self.action = to.action;
             self.e = 0;
-            self.state = .attack_init;
+            self.state = .init_attack;
         }
     }
 };

@@ -19,13 +19,20 @@ pub const Map = struct {
     spawn_time: f32 = undefined,
     time: f32 = undefined,
 
+    red_enemy: Enemy,
+    green_enemy: Enemy,
+    blue_enemy: Enemy,
+
     pub fn init() !@This() {
-        var result: Map = .{};
+        var result: Map = .{
+            .spawn_time = 1.0,
+            .time = 0.0,
 
-        result.spawn_time = 1.0;
-        result.time = 0.0;
-
-        result.enemies = std.mem.zeroes([14 * 4 * 4]?Enemy);
+            .enemies = std.mem.zeroes([14 * 4 * 4]?Enemy),
+            .red_enemy = try Enemy.init(0, 0, 0, .red),
+            .green_enemy = try Enemy.init(0, 0, 1, .green),
+            .blue_enemy = try Enemy.init(0, 0, 2, .blue),
+        };
 
         result.prng = .init(blk: {
             var seed: u64 = undefined;
@@ -56,11 +63,10 @@ pub const Map = struct {
 
             var en: Enemy = undefined;
             switch (enemy_rand) {
-                0 => en = EnemyTypes.RedEnemy,
-                1 => en = EnemyTypes.GreenEnemy,
-                2 => en = EnemyTypes.BlueEnemy,
-                3 => en = EnemyTypes.BlueEnemy,
-                else => en = EnemyTypes.RedEnemy,
+                0 => en = self.red_enemy,
+                1 => en = self.green_enemy,
+                2 => en = self.blue_enemy,
+                else => en = self.red_enemy,
             }
             self.spawn(direction, wall_part, en);
         }
@@ -263,9 +269,25 @@ pub const Map = struct {
 
         for (self.enemies) |_enemy| {
             const enemy = _enemy orelse continue;
-            const x = enemy.x * tile_size;
-            const y = enemy.y * tile_size;
-            rl.drawRectangle(x, y, tile_size, tile_size, enemy.color);
+            const x: f32 = @floatFromInt(enemy.x * tile_size);
+            const y: f32 = @floatFromInt(enemy.y * tile_size);
+
+            const source: rl.Rectangle = .{
+                .x = 0,
+                .y = 0,
+                .width = 16,
+                .height = 16,
+            };
+
+            const destination: rl.Rectangle = .{
+                .x = x,
+                .y = y,
+                .width = 64,
+                .height = 64,
+            };
+
+            rl.drawTexturePro(enemy.texture, source, destination, .zero(), 0.0, enemy.color);
+            // rl.drawRectangle(x, y, tile_size, tile_size, enemy.color);
         }
     }
 
