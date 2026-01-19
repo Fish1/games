@@ -28,6 +28,8 @@
 					pkgs.xorg.libXcursor
 
 					pkgs.lmms
+					pkgs.ardour
+					pkgs.audacity
 				];
 
 				LD_LIBRARY_PATH = pkgs.lib.makeLibraryPath [pkgs.alsa-lib];
