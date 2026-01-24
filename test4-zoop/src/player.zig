@@ -43,7 +43,7 @@ pub const Player = struct {
     animation: Animation,
     action: Action,
 
-    score: u64,
+    score: i32,
     player_texture: rl.Texture,
     texture_index_count: i32,
     texture_index_speed: f32,
@@ -244,9 +244,9 @@ pub const Player = struct {
             self.gem_color = enemy_color;
             rl.playSound(self.swap_sound);
         } else if (self.action == .score) {
-            const score: u64 = @intCast(map.remove_enemies_between(self.x, self.y, self.px, self.py));
-            const score_bonus: u64 = @divFloor(self.score, 100);
-            self.score = self.score + std.math.pow(u64, score, 3) + score_bonus;
+            const score: i32 = @intCast(map.remove_enemies_between(self.x, self.y, self.px, self.py));
+            const score_bonus: i32 = @divFloor(self.score, 100);
+            self.score = self.score + std.math.pow(i32, score, 3) + score_bonus;
             rl.playSound(self.score_sound);
         } else if (self.action == .power_laser) {
             _ = map.remove_enemies_between(self.x, self.y, self.px, self.py);
@@ -296,9 +296,9 @@ pub const Player = struct {
     }
 
     fn end_laser_state(self: *@This(), map: *Map, _: f32) void {
-        const score: u64 = @intCast(map.remove_enemies_between(self.laser_x, self.laser_y, self.laser_px, self.laser_py));
-        const score_bonus: u64 = @divFloor(self.score, 100);
-        self.score = self.score + std.math.pow(u64, score, 3) + score_bonus;
+        const score: i32 = @intCast(map.remove_enemies_between(self.laser_x, self.laser_y, self.laser_px, self.laser_py));
+        const score_bonus: i32 = @divFloor(self.score, 100);
+        self.score = self.score + std.math.pow(i32, score, 3) + score_bonus;
         rl.playSound(self.score_sound);
         self.state = .player_control;
     }
@@ -327,15 +327,15 @@ pub const Player = struct {
     }
 
     fn end_large_laser_state(self: *@This(), map: *Map, _: f32) void {
-        var score: u64 = undefined;
+        var score: i32 = undefined;
         switch (self.laser_direction) {
             .left => score = @intCast(map.remove_enemies_between(0, 0, 13, 31)),
             .right => score = @intCast(map.remove_enemies_between(18, 0, 31, 31)),
             .up => score = @intCast(map.remove_enemies_between(0, 0, 31, 13)),
             .down => score = @intCast(map.remove_enemies_between(0, 18, 31, 31)),
         }
-        const score_bonus: u64 = @divFloor(self.score, 100);
-        self.score = self.score + std.math.pow(u64, score, 3) + score_bonus;
+        const score_bonus: i32 = @divFloor(self.score, 100);
+        self.score = self.score + std.math.pow(i32, score, 3) + score_bonus;
         rl.playSound(self.score_sound);
         self.state = .player_control;
     }

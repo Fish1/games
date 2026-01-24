@@ -15,9 +15,6 @@ const height = 4;
 const size = width * height;
 
 pub const Map = struct {
-    prng: std.Random.DefaultPrng = undefined,
-    rand: std.Random = undefined,
-
     enemies: [14 * 4 * 4]?Enemy = undefined,
 
     time_total: f32 = 0.0,
@@ -29,6 +26,9 @@ pub const Map = struct {
 
     game_over_sound: rl.Sound,
 
+    can_increase_level: bool,
+    level: i32,
+
     pub fn init(texture_loader: *TextureLoader) !@This() {
         const game_over_sound = try rl.loadSound("./assets/gameover.wav");
         var result: Map = .{
@@ -36,13 +36,10 @@ pub const Map = struct {
             .time = 0.0,
             .enemies = std.mem.zeroes([14 * 4 * 4]?Enemy),
             .game_over_sound = game_over_sound,
-
             .enemy = undefined,
+            .can_increase_level = false,
+            .level = 1,
         };
-
-        var prng: std.Random.Xoshiro256 = .init(1);
-        result.prng = prng;
-        result.rand = prng.random();
 
         const enemy: Enemy = .init(0, 0, 0, 0, .red, .star, .laser, texture_loader);
         result.enemy = enemy;
@@ -59,11 +56,13 @@ pub const Map = struct {
         self.time = 0.0;
         self.spawn_time = 0.01;
         self.enemies = std.mem.zeroes([14 * 4 * 4]?Enemy);
+        self.level = 1;
     }
 
     pub fn process(self: *@This(), player: *Player, delta: f32) void {
         self.time_total = self.time_total + delta;
-        self.spawn_time = (1 / (1 + (self.time_total / 30)));
+        // self.spawn_time = (1 / (1 + (self.time_total / 30)));
+        self.spawn_time = 1.0 / @as(f32, @floatFromInt(self.level));
 
         self.time = self.time + delta;
         if (self.time >= self.spawn_time and player.state == .player_control) {
@@ -79,6 +78,20 @@ pub const Map = struct {
                 enemy.process(delta);
             }
         }
+
+        self.can_increase_level = @as(f32, @floatFromInt(player.score)) > self.score_required_to_level_up();
+
+        if (self.can_increase_level == true and rl.isKeyPressed(.space)) {
+            self.level = self.level + 1;
+            std.debug.print("level up = {d}\n", .{self.level});
+        }
+        if (rl.isKeyPressed(.space)) {
+            std.debug.print("score required = {d}\n", .{self.score_required_to_level_up()});
+        }
+    }
+
+    pub fn score_required_to_level_up(self: @This()) f32 {
+        return 300 * std.math.pow(f32, 1.8, @floatFromInt(self.level));
     }
 
     pub fn add_enemy(self: *@This(), enemy: Enemy) void {

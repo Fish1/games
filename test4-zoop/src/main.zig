@@ -15,7 +15,7 @@ const State = enum {
     game_over,
 };
 
-var game_over_score: u64 = undefined;
+var game_over_score: i32 = undefined;
 
 var camera: rl.Camera2D = .{
     .offset = .{
@@ -131,6 +131,7 @@ fn game_state_draw(font_loader: *FontLoader, player: *Player, map: *Map) void {
     draw_player_map(player);
     map.draw();
     player.draw();
+    draw_interface(font_loader, player, map);
 
     const r = 320;
     rl.drawCircle((1024 * 2) - r - 64, (1024 * 2) - r - 64, r, .white);
@@ -176,4 +177,24 @@ fn draw_player_map(player: *Player) void {
             rl.drawCircle(x + 32, y + 32, tile_size * 0.1, color);
         }
     }
+}
+
+fn draw_interface(font_loader: *FontLoader, player: *Player, map: *Map) void {
+    const font_size = 52;
+    var position: rl.Vector2 = .{
+        .x = font_size * 24,
+        .y = font_size * 13,
+    };
+    var buffer: [32]u8 = undefined;
+    if (map.can_increase_level == true) {
+        const result = std.fmt.bufPrintZ(&buffer, "Press Space\n for level {d}!", .{map.level + 1}) catch unreachable;
+        rl.drawTextEx(font_loader.get(.kenney_future).*, result, position, font_size, 0, .white);
+    } else {
+        const result = std.fmt.bufPrintZ(&buffer, "{d} / {d}", .{ player.score, map.score_required_to_level_up() }) catch unreachable;
+        rl.drawTextEx(font_loader.get(.kenney_future).*, result, position, font_size, 0, .white);
+    }
+
+    position.y = font_size * 10;
+    const result = std.fmt.bufPrintZ(&buffer, "Level {d}", .{map.level}) catch unreachable;
+    rl.drawTextEx(font_loader.get(.kenney_future).*, result, position, font_size, 0, .white);
 }
