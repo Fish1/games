@@ -3,6 +3,7 @@ const std = @import("std");
 const ease = @import("ease.zig");
 
 const TextureLoader = @import("texture_loader.zig").TextureLoader;
+const SoundLoader = @import("audio.zig").SoundLoader;
 
 const Map = @import("map.zig").Map;
 const Animation = @import("ease.zig").Animation;
@@ -44,7 +45,7 @@ pub const Player = struct {
     action: Action,
 
     score: i32,
-    player_texture: rl.Texture,
+    player_texture: *rl.Texture,
     texture_index_count: i32,
     texture_index_speed: f32,
     texture_timer: f32,
@@ -58,23 +59,13 @@ pub const Player = struct {
     laser_direction: Direction,
     laser_texture: *rl.Texture,
 
-    score_sound: rl.Sound,
-    swap_sound: rl.Sound,
-    jump_sound: rl.Sound,
-    powerup_sound: rl.Sound,
-    laser_sound: rl.Sound,
-
     power_laser: i32,
     power_large_laser: i32,
     power_giant_laser: i32,
 
-    pub fn init(texture_loader: *TextureLoader) !@This() {
-        const score_sound = try rl.loadSound("./assets/score.wav");
-        const swap_sound = try rl.loadSound("./assets/swap.wav");
-        const jump_sound = try rl.loadSound("./assets/jump.wav");
-        const powerup_sound = try rl.loadSound("./assets/powerup.wav");
-        const laser_sound = try rl.loadSound("./assets/laser.wav");
-        const player_texture = try rl.loadTexture("./assets/player.png");
+    sound_loader: *SoundLoader,
+
+    pub fn init(texture_loader: *TextureLoader, sound_loader: *SoundLoader) !@This() {
         return .{
             .x = 16,
             .y = 16,
@@ -86,15 +77,10 @@ pub const Player = struct {
             .animation = .EaseInBack,
             .action = .score,
             .score = 0,
-            .player_texture = player_texture,
+            .player_texture = texture_loader.get(.player),
             .texture_index_count = 2,
             .texture_index_speed = 0.7,
             .texture_timer = 0.0,
-            .score_sound = score_sound,
-            .swap_sound = swap_sound,
-            .jump_sound = jump_sound,
-            .powerup_sound = powerup_sound,
-            .laser_sound = laser_sound,
 
             .power_laser = 0,
             .power_large_laser = 0,
@@ -108,15 +94,9 @@ pub const Player = struct {
             .laser_rotation = 0,
             .laser_direction = .left,
             .laser_texture = texture_loader.get(.laser),
-        };
-    }
 
-    pub fn deinit(self: *@This()) void {
-        rl.unloadTexture(self.player_texture);
-        rl.unloadSound(self.score_sound);
-        rl.unloadSound(self.swap_sound);
-        rl.unloadSound(self.jump_sound);
-        rl.unloadSound(self.laser_sound);
+            .sound_loader = sound_loader,
+        };
     }
 
     pub fn reset(self: *@This()) void {
@@ -175,7 +155,7 @@ pub const Player = struct {
             .height = 64,
         };
 
-        rl.drawTexturePro(self.player_texture, source, destination, .zero(), 0.0, .white);
+        rl.drawTexturePro(self.player_texture.*, source, destination, .zero(), 0.0, .white);
 
         if (self.state == .laser or self.state == .large_laser) {
             const rlx = ease.ease(.EaseInCubic, @floatFromInt(self.laser_px), @floatFromInt(self.laser_x), self.laser_e) * 64;
@@ -214,7 +194,7 @@ pub const Player = struct {
     }
 
     fn init_attack_state(self: *@This(), _: f32) void {
-        rl.playSound(self.jump_sound);
+        self.sound_loader.play(.jump);
         self.state = .attack;
     }
 
@@ -242,24 +222,24 @@ pub const Player = struct {
         if (self.action == .swap) {
             enemy.set_type(self.gem_color, enemy.shape);
             self.gem_color = enemy_color;
-            rl.playSound(self.swap_sound);
+            self.sound_loader.play(.swap);
         } else if (self.action == .score) {
             const score: i32 = @intCast(map.remove_enemies_between(self.x, self.y, self.px, self.py));
             const score_bonus: i32 = @divFloor(self.score, 100);
             self.score = self.score + std.math.pow(i32, score, 3) + score_bonus;
-            rl.playSound(self.score_sound);
+            self.sound_loader.play(.score);
         } else if (self.action == .power_laser) {
             _ = map.remove_enemies_between(self.x, self.y, self.px, self.py);
-            rl.playSound(self.powerup_sound);
             self.power_laser = self.power_laser + 1;
+            self.sound_loader.play(.powerup);
         } else if (self.action == .power_large_laser) {
             _ = map.remove_enemies_between(self.x, self.y, self.px, self.py);
-            rl.playSound(self.powerup_sound);
             self.power_large_laser = self.power_large_laser + 1;
+            self.sound_loader.play(.powerup);
         } else if (self.action == .power_giant_laser) {
             _ = map.remove_enemies_between(self.x, self.y, self.px, self.py);
-            rl.playSound(self.powerup_sound);
             self.power_giant_laser = self.power_giant_laser + 1;
+            self.sound_loader.play(.powerup);
         }
         self.state = .attack_back;
     }
@@ -285,7 +265,7 @@ pub const Player = struct {
             .down => self.laser_y = 32,
         }
         self.laser_e = 0;
-        rl.playSound(self.laser_sound);
+        self.sound_loader.play(.laser);
     }
 
     fn laser_state(self: *@This(), delta: f32) void {
@@ -299,8 +279,8 @@ pub const Player = struct {
         const score: i32 = @intCast(map.remove_enemies_between(self.laser_x, self.laser_y, self.laser_px, self.laser_py));
         const score_bonus: i32 = @divFloor(self.score, 100);
         self.score = self.score + std.math.pow(i32, score, 3) + score_bonus;
-        rl.playSound(self.score_sound);
         self.state = .player_control;
+        self.sound_loader.play(.score);
     }
 
     fn init_large_laser_state(self: *@This(), _: f32) void {
@@ -316,7 +296,7 @@ pub const Player = struct {
             .down => self.laser_y = 32,
         }
         self.laser_e = 0;
-        rl.playSound(self.laser_sound);
+        self.sound_loader.play(.laser);
     }
 
     fn large_laser_state(self: *@This(), delta: f32) void {
@@ -336,8 +316,8 @@ pub const Player = struct {
         }
         const score_bonus: i32 = @divFloor(self.score, 100);
         self.score = self.score + std.math.pow(i32, score, 3) + score_bonus;
-        rl.playSound(self.score_sound);
         self.state = .player_control;
+        self.sound_loader.play(.score);
     }
 
     fn shoot_power(self: *@This(), power: GemPower, direction: Direction) void {

@@ -26,7 +26,7 @@ pub const Enemy = struct {
     power: ?GemPower,
 
     pub fn init(x: i32, y: i32, px: i32, py: i32, color: GemColor, shape: GemShape, power: ?GemPower, texture_loader: *TextureLoader) @This() {
-        const texture: *rl.Texture = get_texture(color, shape, power, texture_loader);
+        const texture = get_texture(color, shape, power, texture_loader);
         return .{
             .x = x,
             .y = y,

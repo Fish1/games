@@ -24,18 +24,14 @@ pub const Map = struct {
 
     enemy: Enemy,
 
-    game_over_sound: rl.Sound,
-
     can_increase_level: bool,
     level: i32,
 
     pub fn init(texture_loader: *TextureLoader) !@This() {
-        const game_over_sound = try rl.loadSound("./assets/gameover.wav");
         var result: Map = .{
             .spawn_time = 0.01,
             .time = 0.0,
             .enemies = std.mem.zeroes([14 * 4 * 4]?Enemy),
-            .game_over_sound = game_over_sound,
             .enemy = undefined,
             .can_increase_level = false,
             .level = 1,
@@ -45,10 +41,6 @@ pub const Map = struct {
         result.enemy = enemy;
 
         return result;
-    }
-
-    pub fn deinit(self: *@This()) void {
-        rl.unloadSound(self.game_over_sound);
     }
 
     pub fn reset(self: *@This()) void {

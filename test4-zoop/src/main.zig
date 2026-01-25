@@ -6,6 +6,8 @@ const Map = @import("map.zig").Map;
 
 const TextureLoader = @import("texture_loader.zig").TextureLoader;
 const FontLoader = @import("font_loader.zig").FontLoader;
+const SoundLoader = @import("audio.zig").SoundLoader;
+const MusicLoader = @import("audio.zig").MusicLoader;
 
 const UIDrawer = @import("ui_drawer.zig").UIDrawer;
 
@@ -54,23 +56,25 @@ pub fn main() !void {
     var font_loader = try FontLoader.init();
     defer font_loader.deinit();
 
+    var sound_loader = try SoundLoader.init();
+    defer sound_loader.deinit();
+
+    var music_loader = try MusicLoader.init();
+    defer music_loader.deinit();
+
     var buffer: [512]u8 = undefined;
     const ui_drawer = UIDrawer.init(&buffer, &texture_loader, &font_loader);
 
-    const music: rl.Music = try rl.loadMusicStream("./assets/song.wav");
-    defer rl.unloadMusicStream(music);
-    rl.playMusicStream(music);
+    music_loader.play(.example);
 
     var map: Map = try Map.init(&texture_loader);
-    defer map.deinit();
-    var player: Player = try Player.init(&texture_loader);
-    defer player.deinit();
+    var player: Player = try Player.init(&texture_loader, &sound_loader);
 
     while (rl.windowShouldClose() == false) {
-        rl.updateMusicStream(music);
+        music_loader.update();
         switch (state) {
             .main_menu => main_menu_state(ui_drawer, &state),
-            .game => game_state(ui_drawer, &font_loader, &player, &map, &state),
+            .game => game_state(ui_drawer, &sound_loader, &font_loader, &player, &map, &state),
             .game_over => game_over_state(&font_loader, &player, &map, &state),
         }
     }
@@ -111,12 +115,12 @@ fn game_over_state(font_loader: *FontLoader, player: *Player, map: *Map, state: 
     }
 }
 
-fn game_state(ui_drawer: UIDrawer, font_loader: *FontLoader, player: *Player, map: *Map, state: *State) void {
+fn game_state(ui_drawer: UIDrawer, sound_loader: *SoundLoader, font_loader: *FontLoader, player: *Player, map: *Map, state: *State) void {
     const delta = rl.getFrameTime();
     game_state_process(player, map, delta);
     game_state_draw(ui_drawer, font_loader, player, map);
     if (map.is_game_over()) {
-        rl.playSound(map.game_over_sound);
+        sound_loader.play(.game_over);
         game_over_score = player.score;
         state.* = .game_over;
     }
