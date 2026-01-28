@@ -1,3 +1,4 @@
+const std = @import("std");
 const rl = @import("raylib");
 
 pub const SoundID = enum(usize) {
@@ -71,8 +72,58 @@ pub const SoundLoader = struct {
         return rl.isSoundPlaying(sound.*);
     }
 
-    fn get(self: *@This(), sound_id: SoundID) *rl.Sound {
+    pub fn get(self: *@This(), sound_id: SoundID) *rl.Sound {
         return &self.sounds[@intFromEnum(sound_id)];
+    }
+};
+
+pub const SoundQueue = struct {
+    queue: [10]?*rl.Sound = std.mem.zeroes([10]?*rl.Sound),
+    current: usize = 0,
+    end: usize = 0,
+
+    pub fn add(self: *@This(), sound: *rl.Sound) bool {
+        if (self.is_full()) {
+            return false;
+        }
+
+        self.queue[self.end] = sound;
+        if (self.current == self.end) {
+            const _current_sound = self.queue[self.current];
+            if (_current_sound) |current_sound| {
+                rl.playSound(current_sound.*);
+            }
+        }
+        self.increment_end();
+        return true;
+    }
+
+    pub fn process(self: *@This()) void {
+        if (self.current == self.end) {
+            return;
+        }
+
+        const current_sound = self.queue[self.current] orelse return;
+        if (rl.isSoundPlaying(current_sound.*) == false) {
+            self.increment_current();
+            if (self.current != self.end) {
+                const new_sound = self.queue[self.current] orelse return;
+                rl.playSound(new_sound.*);
+            }
+        }
+    }
+
+    fn is_full(self: @This()) bool {
+        return (self.current > 0 and self.end == self.current - 1) or
+            (self.current == 0 and self.end == 9);
+    }
+
+    fn increment_current(self: *@This()) void {
+        self.current = @mod(self.current + 1, 10);
+    }
+
+    fn increment_end(self: *@This()) void {
+        self.end = @mod(self.end + 1, 10);
     }
 };
 

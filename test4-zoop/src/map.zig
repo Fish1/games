@@ -3,6 +3,7 @@ const rl = @import("raylib");
 
 const TextureLoader = @import("texture_loader.zig").TextureLoader;
 const SoundLoader = @import("audio.zig").SoundLoader;
+const SoundQueue = @import("audio.zig").SoundQueue;
 
 const Enemy = @import("enemy.zig").Enemy;
 const Player = @import("player.zig").Player;
@@ -38,6 +39,7 @@ pub const Map = struct {
     say_hurry_up_timeout: f32 = 0.0,
 
     sound_loader: *SoundLoader,
+    announcement_sound_queue: SoundQueue = .{},
 
     difficulty: Difficulty = .medium,
 
