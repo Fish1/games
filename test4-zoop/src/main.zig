@@ -66,13 +66,13 @@ pub fn main() !void {
     var buffer: [512]u8 = undefined;
     const ui_drawer = UIDrawer.init(&buffer, &texture_loader, &font_loader);
 
-    music_loader.play(.example);
+    music_loader.play(.full_song, 0.0, 1.0);
 
-    var map: Map = try Map.init(&texture_loader, &sound_loader);
+    var map: Map = try Map.init(&texture_loader, &sound_loader, &music_loader);
     var player: Player = try Player.init(&texture_loader, &sound_loader);
 
     while (rl.windowShouldClose() == false) {
-        music_loader.update();
+        music_loader.process(rl.getFrameTime());
         switch (state) {
             .main_menu => main_menu_state(ui_drawer, &ui_sound_queue, &sound_loader, &state, &map, &difficulty),
             .game => game_state(ui_drawer, &sound_loader, &font_loader, &player, &map, &state),

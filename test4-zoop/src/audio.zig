@@ -143,14 +143,33 @@ pub const SoundQueue = struct {
 
 pub const MusicID = enum(usize) {
     example,
+    full_song,
+    easy_song,
+    medium_song,
+    hard_song,
 };
 
 pub const MusicLoader = struct {
-    music: [1]rl.Music,
+    music: [5]rl.Music,
+
+    max_volume: f32 = 0.65,
+    volume: f32 = 0,
+
+    current_music: ?MusicID = null,
+    next_music: ?MusicID = null,
+
+    out_duration: f32 = 1.0,
+    in_duration: f32 = 1.0,
 
     pub fn init() !@This() {
         return .{
-            .music = .{try rl.loadMusicStream("./assets/sounds/music/song.wav")},
+            .music = .{
+                try rl.loadMusicStream("./assets/sounds/music/song.wav"),
+                try rl.loadMusicStream("./assets/sounds/music/full_song.wav"),
+                try rl.loadMusicStream("./assets/sounds/music/game_easy.wav"),
+                try rl.loadMusicStream("./assets/sounds/music/game_medium.wav"),
+                try rl.loadMusicStream("./assets/sounds/music/game_hard.wav"),
+            },
         };
     }
 
@@ -160,21 +179,48 @@ pub const MusicLoader = struct {
         }
     }
 
-    pub fn play(self: *@This(), music_id: MusicID) void {
-        const music = self.get(music_id);
-        rl.playMusicStream(music.*);
+    pub fn play(self: *@This(), music_id: MusicID, out: f32, in: f32) void {
+        self.out_duration = out;
+        self.in_duration = in;
+        if (self.current_music == null) {
+            self.current_music = music_id;
+        } else {
+            self.next_music = music_id;
+        }
     }
 
     pub fn stop(self: *@This(), music_id: MusicID) void {
         const music = self.get(music_id);
         rl.stopMusicStream(music.*);
+        self.current_music = null;
+        self.next_music = null;
     }
 
-    pub fn update(self: *@This()) void {
+    pub fn process(self: *@This(), delta: f32) void {
         for (&self.music) |*music| {
             if (rl.isMusicStreamPlaying(music.*) == true) {
                 rl.updateMusicStream(music.*);
             }
+        }
+
+        const current_music = self.current_music orelse return;
+
+        if (self.next_music) |next_music| {
+            self.volume = @max(self.volume - (delta / self.out_duration), 0.0);
+            rl.setMusicVolume(self.get(current_music).*, self.volume);
+            if (self.volume <= 0) {
+                rl.stopMusicStream(self.get(current_music).*);
+                rl.playMusicStream(self.get(next_music).*);
+                rl.setMusicVolume(self.get(next_music).*, self.volume);
+                self.current_music = self.next_music;
+                self.next_music = null;
+            }
+        } else {
+            if (rl.isMusicStreamPlaying(self.get(current_music).*) == false) {
+                rl.playMusicStream(self.get(current_music).*);
+            }
+            self.volume = @min(self.volume + (delta / self.in_duration), self.max_volume);
+            rl.setMusicVolume(self.get(current_music).*, self.volume);
         }
     }
 

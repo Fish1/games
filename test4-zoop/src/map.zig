@@ -3,6 +3,7 @@ const rl = @import("raylib");
 
 const TextureLoader = @import("texture_loader.zig").TextureLoader;
 const SoundLoader = @import("audio.zig").SoundLoader;
+const MusicLoader = @import("audio.zig").MusicLoader;
 const SoundQueue = @import("audio.zig").SoundQueue;
 const SoundID = @import("audio.zig").SoundID;
 
@@ -42,13 +43,16 @@ pub const Map = struct {
     sound_loader: *SoundLoader,
     announcement_sound_queue: SoundQueue = .{},
 
+    music_loader: *MusicLoader,
+
     difficulty: Difficulty = .medium,
 
-    pub fn init(texture_loader: *TextureLoader, sound_loader: *SoundLoader) !@This() {
+    pub fn init(texture_loader: *TextureLoader, sound_loader: *SoundLoader, music_loader: *MusicLoader) !@This() {
         return .{
             .enemies = std.mem.zeroes([14 * 4 * 4]?Enemy),
             .enemy_prototype = .init(0, 0, 0, 0, .red, .star, .laser, false, texture_loader),
             .sound_loader = sound_loader,
+            .music_loader = music_loader,
         };
     }
 
@@ -117,6 +121,13 @@ pub const Map = struct {
                 else => .say_ten,
             };
             _ = self.announcement_sound_queue.add(self.sound_loader.get(sound_id));
+            if (next_level == 1) {
+                self.music_loader.play(.easy_song, 2.0, 15.0);
+            } else if (self.level < 4 and next_level >= 4 and next_level <= 7) {
+                self.music_loader.play(.medium_song, 1.0, 2.0);
+            } else if (self.level < 8 and next_level >= 8) {
+                self.music_loader.play(.hard_song, 1.0, 2.0);
+            }
             self.level = next_level;
         }
 
