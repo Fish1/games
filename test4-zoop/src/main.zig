@@ -75,7 +75,7 @@ pub fn main() !void {
         music_loader.process(rl.getFrameTime());
         switch (state) {
             .main_menu => main_menu_state(ui_drawer, &ui_sound_queue, &sound_loader, &state, &map, &difficulty),
-            .game => game_state(ui_drawer, &sound_loader, &font_loader, &player, &map, &state),
+            .game => game_state(ui_drawer, &sound_loader, &music_loader, &font_loader, &player, &map, &state),
             .game_over => game_over_state(&font_loader, &player, &map, &state),
         }
     }
@@ -141,13 +141,14 @@ fn game_over_state(font_loader: *FontLoader, player: *Player, map: *Map, state: 
     }
 }
 
-fn game_state(ui_drawer: UIDrawer, sound_loader: *SoundLoader, font_loader: *FontLoader, player: *Player, map: *Map, state: *State) void {
+fn game_state(ui_drawer: UIDrawer, sound_loader: *SoundLoader, music_loader: *MusicLoader, font_loader: *FontLoader, player: *Player, map: *Map, state: *State) void {
     const delta = rl.getFrameTime();
     game_state_process(player, map, delta);
     game_state_draw(ui_drawer, font_loader, player, map);
     if (map.is_game_over()) {
         sound_loader.play(.game_over);
         sound_loader.play(.say_you_lose);
+        music_loader.play(.game_over, 3.0, 15.0);
         game_over_score = player.score;
         state.* = .game_over;
     }

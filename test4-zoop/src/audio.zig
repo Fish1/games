@@ -147,10 +147,11 @@ pub const MusicID = enum(usize) {
     easy_song,
     medium_song,
     hard_song,
+    game_over,
 };
 
 pub const MusicLoader = struct {
-    music: [5]rl.Music,
+    music: [6]rl.Music,
 
     max_volume: f32 = 0.65,
     volume: f32 = 0,
@@ -169,6 +170,7 @@ pub const MusicLoader = struct {
                 try rl.loadMusicStream("./assets/sounds/music/game_easy.wav"),
                 try rl.loadMusicStream("./assets/sounds/music/game_medium.wav"),
                 try rl.loadMusicStream("./assets/sounds/music/game_hard.wav"),
+                try rl.loadMusicStream("./assets/sounds/music/game_over.wav"),
             },
         };
     }

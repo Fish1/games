@@ -406,7 +406,8 @@ pub const Map = struct {
         return switch (self.difficulty) {
             .easy => (-1.0 / 12.0) * @as(f32, @floatFromInt(level)) + 1.25,
             .medium => (-1.0 / 10.0) * @as(f32, @floatFromInt(level)) + 1.25,
-            .hard => (-1.0 / 9.0) * @as(f32, @floatFromInt(level)) + 1.25,
+            // .hard => (-1.0 / 9.0) * @as(f32, @floatFromInt(level)) + 1.25,
+            .hard => 0.1,
         };
     }
 
