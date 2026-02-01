@@ -69,7 +69,7 @@ pub fn main() !void {
     music_loader.play(.full_song, 0.0, 1.0);
 
     var map: Map = try Map.init(&texture_loader, &sound_loader, &music_loader);
-    var player: Player = try Player.init(&texture_loader, &sound_loader);
+    var player: Player = try Player.init(&texture_loader, &sound_loader, &map.level);
 
     while (rl.windowShouldClose() == false) {
         music_loader.process(rl.getFrameTime());
