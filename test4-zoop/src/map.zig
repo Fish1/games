@@ -140,6 +140,25 @@ pub const Map = struct {
         }
     }
 
+    pub fn spawn_at_location(self: *@This(), x: i32, y: i32, px: i32, py: i32) void {
+        var new_enemy = self.enemy_prototype.copy_to(x, y, px, py);
+        const gem_type = rl.getRandomValue(0, 99);
+        if (gem_type >= 0 and gem_type <= 4 and self.level == 10) {
+            new_enemy.set_goal(true);
+        } else if (gem_type >= 89 and gem_type <= 99) {
+            var power: ?GemPower = null;
+            const power_type = rl.getRandomValue(0, 9);
+            if (power_type < 8) {
+                power = .laser;
+            } else if (power_type < 10) {
+                power = .large_laser;
+            }
+            new_enemy.set_power(power);
+        }
+        new_enemy.update_texture();
+        self.add_enemy(new_enemy);
+    }
+
     pub fn spawn(self: *@This(), direction: Direction, wall_part: i32) void {
         if (wall_part < 0 or wall_part >= 4) {
             return;
@@ -155,22 +174,7 @@ pub const Map = struct {
                     check_enemy.move(.right);
                 }
             }
-            var new_enemy = self.enemy_prototype.copy_to(0, y, -1, y);
-            var power: ?GemPower = null;
-            const is_power = rl.getRandomValue(0, 9);
-            if (is_power == 0) {
-                const power_type = rl.getRandomValue(0, 9);
-                if (power_type < 8) {
-                    power = .laser;
-                } else if (power_type < 10) {
-                    power = .large_laser;
-                } else if (power_type < 10) {
-                    power = .giant_laser;
-                }
-            }
-            new_enemy.set_power(power);
-            new_enemy.update_texture();
-            self.add_enemy(new_enemy);
+            self.spawn_at_location(0, y, -1, y);
         } else if (direction == .up) {
             const x = 14 + wall_part;
             for (&self.enemies) |*_check_enemy| {
@@ -181,7 +185,8 @@ pub const Map = struct {
                     check_enemy.move(.down);
                 }
             }
-            self.add_enemy(self.enemy_prototype.copy_to(x, 0, x, -1));
+
+            self.spawn_at_location(x, 0, x, -1);
         } else if (direction == .right) {
             const y = 14 + wall_part;
             for (&self.enemies) |*_check_enemy| {
@@ -192,7 +197,7 @@ pub const Map = struct {
                     check_enemy.move(.left);
                 }
             }
-            self.add_enemy(self.enemy_prototype.copy_to(31, y, 32, y));
+            self.spawn_at_location(31, y, 32, y);
         } else if (direction == .down) {
             const x = 14 + wall_part;
             for (&self.enemies) |*_check_enemy| {
@@ -203,7 +208,7 @@ pub const Map = struct {
                     check_enemy.move(.up);
                 }
             }
-            self.add_enemy(self.enemy_prototype.copy_to(x, 31, x, 32));
+            self.spawn_at_location(x, 31, x, 32);
         }
     }
 
@@ -303,7 +308,9 @@ pub const Map = struct {
 
         var action: Action = .swap;
         if (_first_enemy) |first_enemy| {
-            if (first_enemy.power) |power| {
+            if (first_enemy.goal == true) {
+                action = .goal;
+            } else if (first_enemy.power) |power| {
                 switch (power) {
                     .laser => action = .power_laser,
                     .large_laser => action = .power_large_laser,
@@ -328,13 +335,10 @@ pub const Map = struct {
 
                 const first_enemy = _first_enemy orelse break;
                 const new_enemy = self.get_enemy(position[0], position[1]) orelse break;
-                if (first_enemy.power != null) {
-                    break;
-                }
-                if (new_enemy.color != first_enemy.color) {
-                    break;
-                }
-                if (new_enemy.power != null) {
+                if (first_enemy.goal == true or
+                    first_enemy.power != null or
+                    new_enemy.color != first_enemy.color)
+                {
                     break;
                 }
                 new_x = new_enemy.x;

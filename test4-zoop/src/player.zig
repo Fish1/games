@@ -45,6 +45,7 @@ pub const Player = struct {
     action: Action,
 
     score: i32,
+    goals: i32,
     player_texture: *rl.Texture,
     texture_index_count: i32,
     texture_index_speed: f32,
@@ -83,6 +84,7 @@ pub const Player = struct {
             .animation = .EaseInBack,
             .action = .score,
             .score = 0,
+            .goals = 0,
             .player_texture = texture_loader.get(.player),
             .texture_index_count = 2,
             .texture_index_speed = 0.7,
@@ -116,6 +118,9 @@ pub const Player = struct {
         self.power_large_laser = 0;
         self.power_giant_laser = 0;
         self.score = 0;
+        self.goals = 0;
+        self.pickup_speed_multiplier = 1;
+        self.pickup_speed_multiplier_timer = 0.0;
     }
 
     pub fn process(self: *@This(), map: *Map, delta: f32) void {
@@ -253,6 +258,10 @@ pub const Player = struct {
             self.sound_loader.play(.score);
             self.pickup_speed_multiplier_timer = self.pickup_speed_multiplier_timer_reset;
             self.pickup_speed_multiplier = @min(self.pickup_speed_multiplier + 1, 5);
+        } else if (self.action == .goal) {
+            _ = map.remove_enemies_between(self.x, self.y, self.px, self.py);
+            self.goals = self.goals + 1;
+            self.sound_loader.play(.score);
         } else if (self.action == .power_laser) {
             _ = map.remove_enemies_between(self.x, self.y, self.px, self.py);
             self.power_laser = self.power_laser + 1;

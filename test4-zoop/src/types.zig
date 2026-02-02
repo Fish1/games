@@ -1,6 +1,7 @@
 pub const Action = enum {
     score,
     swap,
+    goal,
 
     power_laser,
     power_large_laser,

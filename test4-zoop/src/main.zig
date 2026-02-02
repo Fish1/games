@@ -25,6 +25,12 @@ const State = enum {
     game_over,
 };
 
+const GameOverType = enum {
+    win,
+    lose,
+};
+
+var game_over_type: GameOverType = undefined;
 var game_over_score: i32 = undefined;
 
 var camera: rl.Camera2D = .{
@@ -150,6 +156,13 @@ fn game_state(ui_drawer: UIDrawer, sound_loader: *SoundLoader, music_loader: *Mu
         sound_loader.play(.say_you_lose);
         music_loader.play(.game_over, 3.0, 15.0);
         game_over_score = player.score;
+        game_over_type = .lose;
+        state.* = .game_over;
+    } else if (player.goals == 3) {
+        sound_loader.play(.say_objective_achieved);
+        music_loader.play(.game_over, 3.0, 15.0);
+        game_over_score = player.score;
+        game_over_type = .win;
         state.* = .game_over;
     }
 }
@@ -170,6 +183,7 @@ fn game_state_draw(ui_drawer: UIDrawer, _: *FontLoader, player: *Player, map: *M
     player.draw();
     rl.endMode2D();
 
+    ui_drawer.draw_game_goals(64 * 10, 32, player.goals);
     ui_drawer.draw_game_levelup(32, 32, map.level, player.score, map.get_score_to_levelup(player));
     ui_drawer.draw_game_powerups(64 * 10, 64 * 5, player.power_laser, player.power_large_laser);
     ui_drawer.draw_game_extra_score(32, 64 * 5, player.get_score_multiplier(), player.get_score_bonus(), player.get_score_per_gem());

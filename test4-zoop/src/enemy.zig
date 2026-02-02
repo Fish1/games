@@ -24,7 +24,6 @@ pub const Enemy = struct {
     color: GemColor,
     shape: GemShape,
     power: ?GemPower,
-
     goal: bool,
 
     pub fn init(x: i32, y: i32, px: i32, py: i32, color: GemColor, shape: GemShape, power: ?GemPower, goal: bool, texture_loader: *TextureLoader) @This() {
@@ -180,10 +179,14 @@ pub const Enemy = struct {
             }
         }
 
+        if (self.goal == true) {
+            texture = self.texture_loader.get(.goal);
+        }
+
         self.texture = texture;
     }
 
-    pub fn get_texture(color: GemColor, shape: GemShape, power: ?GemPower, _: bool, texture_loader: *TextureLoader) *rl.Texture {
+    pub fn get_texture(color: GemColor, shape: GemShape, power: ?GemPower, goal: bool, texture_loader: *TextureLoader) *rl.Texture {
         var texture: *rl.Texture = undefined;
         if (color == .red) {
             switch (shape) {
@@ -211,6 +214,10 @@ pub const Enemy = struct {
                 .large_laser => texture = texture_loader.get(.grey_diamond_gem),
                 .giant_laser => texture = texture_loader.get(.grey_star_gem),
             }
+        }
+
+        if (goal == true) {
+            texture = texture_loader.get(.goal);
         }
 
         return texture;
