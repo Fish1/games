@@ -81,7 +81,7 @@ pub fn main() !void {
         music_loader.process(rl.getFrameTime());
         switch (state) {
             .main_menu => main_menu_state(ui_drawer, &ui_sound_queue, &sound_loader, &state, &map, &difficulty),
-            .game => game_state(ui_drawer, &sound_loader, &music_loader, &font_loader, &player, &map, &state),
+            .game => game_state(ui_drawer, &sound_loader, &music_loader, &texture_loader, &font_loader, &player, &map, &state),
             .game_over => game_over_state(&font_loader, &player, &map, &state),
         }
     }
@@ -147,10 +147,10 @@ fn game_over_state(font_loader: *FontLoader, player: *Player, map: *Map, state: 
     }
 }
 
-fn game_state(ui_drawer: UIDrawer, sound_loader: *SoundLoader, music_loader: *MusicLoader, font_loader: *FontLoader, player: *Player, map: *Map, state: *State) void {
+fn game_state(ui_drawer: UIDrawer, sound_loader: *SoundLoader, music_loader: *MusicLoader, texture_loader: *TextureLoader, font_loader: *FontLoader, player: *Player, map: *Map, state: *State) void {
     const delta = rl.getFrameTime();
     game_state_process(player, map, delta);
-    game_state_draw(ui_drawer, font_loader, player, map);
+    game_state_draw(ui_drawer, font_loader, texture_loader, player, map);
     if (map.is_game_over()) {
         sound_loader.play(.game_over);
         sound_loader.play(.say_you_lose);
@@ -172,13 +172,13 @@ fn game_state_process(player: *Player, map: *Map, delta: f32) void {
     player.process(map, delta);
 }
 
-fn game_state_draw(ui_drawer: UIDrawer, _: *FontLoader, player: *Player, map: *Map) void {
+fn game_state_draw(ui_drawer: UIDrawer, _: *FontLoader, texture_loader: *TextureLoader, player: *Player, map: *Map) void {
     rl.beginDrawing();
     defer rl.endDrawing();
 
     rl.beginMode2D(camera);
     rl.clearBackground(.black);
-    draw_player_map(player);
+    draw_player_map(player, texture_loader);
     map.draw();
     player.draw();
     rl.endMode2D();
@@ -189,12 +189,27 @@ fn game_state_draw(ui_drawer: UIDrawer, _: *FontLoader, player: *Player, map: *M
     ui_drawer.draw_game_extra_score(32, 64 * 5, player.get_score_multiplier(), player.get_score_bonus(), player.get_score_per_gem());
 }
 
-fn draw_player_map(player: *Player) void {
-    const color: rl.Color = switch (player.gem_color) {
+fn draw_player_map(player: *Player, texture_loader: *TextureLoader) void {
+    var color: rl.Color = switch (player.gem_color) {
         .red => .red,
         .green => .green,
         .blue => .blue,
     };
+
+    const texture = texture_loader.get(.planet);
+    const source: rl.Rectangle = .{
+        .x = 0,
+        .y = 0,
+        .width = @floatFromInt(texture.width),
+        .height = @floatFromInt(texture.height),
+    };
+    const destination: rl.Rectangle = .{
+        .x = window_height - (@as(f32, @floatFromInt(texture.width)) / 4.0),
+        .y = window_width - (@as(f32, @floatFromInt(texture.height)) / 4.0),
+        .width = @as(f32, @floatFromInt(texture.width)) / 2.0,
+        .height = @as(f32, @floatFromInt(texture.height)) / 2.0,
+    };
+    texture_loader.get(.planet).drawPro(source, destination, .zero(), 0.0, .gray);
 
     for (0..16) |square| {
         const width = 4;
@@ -202,8 +217,8 @@ fn draw_player_map(player: *Player) void {
         const ty: i32 = @intCast(@divFloor(square, width));
         const x: i32 = @intCast(tx * tile_size + tile_size * 14);
         const y: i32 = @intCast(ty * tile_size + tile_size * 14);
-        rl.drawRectangle(x, y, tile_size, tile_size, .gray);
-        rl.drawCircle(x + 32, y + 32, tile_size * 0.1, .black);
+        // rl.drawRectangle(x, y, tile_size, tile_size, .gray);
+        rl.drawCircle(x + 32, y + 32, tile_size * 0.1, .white);
     }
 
     for (0..14 * 4) |dot| {
@@ -212,6 +227,10 @@ fn draw_player_map(player: *Player) void {
         const ty: i32 = @intCast(@divFloor(dot, _width));
         const x: i32 = @intCast(tx * tile_size);
         const y: i32 = @intCast((ty * tile_size) + (tile_size * 14));
+
+        const alpha = (@as(f32, @floatFromInt(tx)) / 13.0) * 255.0;
+        color.a = @intFromFloat(@min(alpha, 255.0));
+
         rl.drawCircle(x + 32, y + 32, tile_size * 0.1, color);
     }
 
@@ -221,6 +240,10 @@ fn draw_player_map(player: *Player) void {
         const ty: i32 = @intCast(@divFloor(dot, _width));
         const x: i32 = @intCast(tx * tile_size + tile_size * 14);
         const y: i32 = @intCast(ty * tile_size);
+
+        const alpha = (@as(f32, @floatFromInt(ty)) / 13.0) * 255.0;
+        color.a = @intFromFloat(@min(alpha, 255.0));
+
         rl.drawCircle(x + 32, y + 32, tile_size * 0.1, color);
     }
 
@@ -230,6 +253,10 @@ fn draw_player_map(player: *Player) void {
         const ty: i32 = @intCast(@divFloor(dot, _width));
         const x: i32 = @intCast(tx * tile_size + tile_size * 18);
         const y: i32 = @intCast(ty * tile_size + tile_size * 14);
+
+        const alpha = (@as(f32, @floatFromInt(13 - tx)) / 13.0) * 255.0;
+        color.a = @intFromFloat(@min(alpha, 255.0));
+
         rl.drawCircle(x + 32, y + 32, tile_size * 0.1, color);
     }
 
@@ -239,6 +266,10 @@ fn draw_player_map(player: *Player) void {
         const ty: i32 = @intCast(@divFloor(dot, _width));
         const x: i32 = @intCast(tx * tile_size + tile_size * 14);
         const y: i32 = @intCast(ty * tile_size + tile_size * 18);
+
+        const alpha = (@as(f32, @floatFromInt(13 - ty)) / 13.0) * 255.0;
+        color.a = @intFromFloat(@min(alpha, 255.0));
+
         rl.drawCircle(x + 32, y + 32, tile_size * 0.1, color);
     }
 }

@@ -147,10 +147,9 @@ pub const Map = struct {
             new_enemy.set_goal(true);
         } else if (gem_type >= 89 and gem_type <= 99) {
             var power: ?GemPower = null;
-            const power_type = rl.getRandomValue(0, 9);
-            if (power_type < 8) {
+            if (self.level <= 8) {
                 power = .laser;
-            } else if (power_type < 10) {
+            } else {
                 power = .large_laser;
             }
             new_enemy.set_power(power);
@@ -335,8 +334,8 @@ pub const Map = struct {
 
                 const first_enemy = _first_enemy orelse break;
                 const new_enemy = self.get_enemy(position[0], position[1]) orelse break;
-                if (first_enemy.goal == true or
-                    first_enemy.power != null or
+                if (new_enemy.goal == true or
+                    new_enemy.power != null or
                     new_enemy.color != first_enemy.color)
                 {
                     break;
@@ -401,8 +400,8 @@ pub const Map = struct {
         return switch (self.difficulty) {
             .easy => (-1.0 / 12.0) * @as(f32, @floatFromInt(level)) + 1.25,
             .medium => (-1.0 / 10.0) * @as(f32, @floatFromInt(level)) + 1.25,
-            // .hard => (-1.0 / 9.0) * @as(f32, @floatFromInt(level)) + 1.25,
-            .hard => 0.1,
+            .hard => (-1.0 / 9.0) * @as(f32, @floatFromInt(level)) + 1.25,
+            // .hard => 0.1,
         };
     }
 

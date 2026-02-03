@@ -60,6 +60,10 @@ pub const Player = struct {
     laser_direction: Direction,
     laser_texture: *rl.Texture,
 
+    red_laser_texture: *rl.Texture,
+    green_laser_texture: *rl.Texture,
+    blue_laser_texture: *rl.Texture,
+
     power_laser: i32,
     power_large_laser: i32,
     power_giant_laser: i32,
@@ -102,6 +106,10 @@ pub const Player = struct {
             .laser_rotation = 0,
             .laser_direction = .left,
             .laser_texture = texture_loader.get(.laser),
+
+            .red_laser_texture = texture_loader.get(.laser_red),
+            .green_laser_texture = texture_loader.get(.laser_green),
+            .blue_laser_texture = texture_loader.get(.laser_blue),
 
             .sound_loader = sound_loader,
 
@@ -262,10 +270,14 @@ pub const Player = struct {
             _ = map.remove_enemies_between(self.x, self.y, self.px, self.py);
             self.goals = self.goals + 1;
             self.sound_loader.play(.score);
+            self.pickup_speed_multiplier_timer = self.pickup_speed_multiplier_timer_reset;
+            self.pickup_speed_multiplier = @min(self.pickup_speed_multiplier + 1, 5);
         } else if (self.action == .power_laser) {
             _ = map.remove_enemies_between(self.x, self.y, self.px, self.py);
             self.power_laser = self.power_laser + 1;
             self.sound_loader.play(.powerup);
+            self.pickup_speed_multiplier_timer = self.pickup_speed_multiplier_timer_reset;
+            self.pickup_speed_multiplier = @min(self.pickup_speed_multiplier + 1, 5);
             if (self.power_laser >= 3) {
                 self.sound_loader.play(.say_power_up);
             }
@@ -273,13 +285,11 @@ pub const Player = struct {
             _ = map.remove_enemies_between(self.x, self.y, self.px, self.py);
             self.power_large_laser = self.power_large_laser + 1;
             self.sound_loader.play(.powerup);
+            self.pickup_speed_multiplier_timer = self.pickup_speed_multiplier_timer_reset;
+            self.pickup_speed_multiplier = @min(self.pickup_speed_multiplier + 1, 5);
             if (self.power_large_laser >= 3) {
                 self.sound_loader.play(.say_power_up);
             }
-        } else if (self.action == .power_giant_laser) {
-            _ = map.remove_enemies_between(self.x, self.y, self.px, self.py);
-            self.power_giant_laser = self.power_giant_laser + 1;
-            self.sound_loader.play(.powerup);
         }
         self.state = .attack_back;
     }
