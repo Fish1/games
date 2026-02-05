@@ -4,6 +4,7 @@ const ease = @import("ease.zig");
 const Player = @import("player.zig").Player;
 const Map = @import("map.zig").Map;
 
+const TextureID = @import("texture_loader.zig").TextureID;
 const TextureLoader = @import("texture_loader.zig").TextureLoader;
 const FontLoader = @import("font_loader.zig").FontLoader;
 const SoundLoader = @import("audio.zig").SoundLoader;
@@ -32,6 +33,11 @@ const GameOverType = enum {
 
 var game_over_type: GameOverType = undefined;
 var game_over_score: i32 = undefined;
+
+var noise_state_previous: TextureID = .noise11;
+var noise_state: TextureID = .noise08;
+var noise_time: f32 = 0.0;
+var noise_speed: f32 = 8.0;
 
 var camera: rl.Camera2D = .{
     .offset = .{
@@ -170,6 +176,18 @@ fn game_state(ui_drawer: UIDrawer, sound_loader: *SoundLoader, music_loader: *Mu
 fn game_state_process(player: *Player, map: *Map, delta: f32) void {
     map.process(player, delta);
     player.process(map, delta);
+    noise_time = noise_time + delta;
+    if (noise_time >= noise_speed) {
+        noise_time = 0.0;
+        noise_state_previous = noise_state;
+        noise_state = switch (noise_state) {
+            .noise08 => .noise09,
+            .noise09 => .noise10,
+            .noise10 => .noise11,
+            .noise11 => .noise08,
+            else => .noise08,
+        };
+    }
 }
 
 fn game_state_draw(ui_drawer: UIDrawer, _: *FontLoader, texture_loader: *TextureLoader, player: *Player, map: *Map) void {
@@ -210,6 +228,39 @@ fn draw_player_map(player: *Player, texture_loader: *TextureLoader) void {
         .height = @as(f32, @floatFromInt(texture.height)) / 2.0,
     };
     texture_loader.get(.planet).drawPro(source, destination, .zero(), 0.0, .gray);
+
+    const noise = texture_loader.get(noise_state);
+    const noise_source: rl.Rectangle = .{
+        .x = 0,
+        .y = 0,
+        .width = @floatFromInt(noise.width),
+        .height = @floatFromInt(noise.height),
+    };
+    const noise_destination: rl.Rectangle = .{
+        .x = window_height - (@as(f32, @floatFromInt(noise.width)) / 4.0),
+        .y = window_width - (@as(f32, @floatFromInt(noise.height)) / 4.0),
+        .width = @as(f32, @floatFromInt(noise.width)) / 2.0,
+        .height = @as(f32, @floatFromInt(noise.height)) / 2.0,
+    };
+    var noise_color: rl.Color = .gray;
+    noise_color.a = @intFromFloat(255.0 * (noise_time / noise_speed));
+    noise.drawPro(noise_source, noise_destination, .zero(), 0.0, noise_color);
+
+    const noise_previous = texture_loader.get(noise_state_previous);
+    const noise_previous_source: rl.Rectangle = .{
+        .x = 0,
+        .y = 0,
+        .width = @floatFromInt(noise.width),
+        .height = @floatFromInt(noise.height),
+    };
+    const noise_previous_destination: rl.Rectangle = .{
+        .x = window_height - (@as(f32, @floatFromInt(noise_previous.width)) / 4.0),
+        .y = window_width - (@as(f32, @floatFromInt(noise_previous.height)) / 4.0),
+        .width = @as(f32, @floatFromInt(noise_previous.width)) / 2.0,
+        .height = @as(f32, @floatFromInt(noise_previous.height)) / 2.0,
+    };
+    noise_color.a = @intFromFloat(255.0 * (1.0 - (noise_time / noise_speed)));
+    noise_previous.drawPro(noise_previous_source, noise_previous_destination, .zero(), 0.0, noise_color);
 
     for (0..16) |square| {
         const width = 4;

@@ -23,6 +23,10 @@ pub const TextureID = enum(usize) {
     laser_blue,
 
     planet,
+    noise08,
+    noise09,
+    noise10,
+    noise11,
 
     ui_button_square_gradient,
     ui_check_round_color,
@@ -30,7 +34,7 @@ pub const TextureID = enum(usize) {
 };
 
 pub const TextureLoader = struct {
-    textures: [22]rl.Texture,
+    textures: [26]rl.Texture,
 
     pub fn init() !@This() {
         return .{
@@ -57,6 +61,10 @@ pub const TextureLoader = struct {
                 try rl.loadTexture("./assets/images/laser_blue.png"),
 
                 try rl.loadTexture("./assets/images/planet09.png"),
+                try rl.loadTexture("./assets/images/noise08.png"),
+                try rl.loadTexture("./assets/images/noise09.png"),
+                try rl.loadTexture("./assets/images/noise10.png"),
+                try rl.loadTexture("./assets/images/noise11.png"),
 
                 try rl.loadTexture("./assets/ui/images/Blue/Double/button_square_gradient.png"),
                 try rl.loadTexture("./assets/ui/images/Blue/Double/check_round_color.png"),

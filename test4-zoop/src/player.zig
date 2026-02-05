@@ -2,6 +2,8 @@ const rl = @import("raylib");
 const std = @import("std");
 const ease = @import("ease.zig");
 
+const Score = @import("score.zig");
+
 const TextureLoader = @import("texture_loader.zig").TextureLoader;
 const SoundLoader = @import("audio.zig").SoundLoader;
 
