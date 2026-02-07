@@ -3,6 +3,7 @@ const std = @import("std");
 const ease = @import("ease.zig");
 
 const Scorer = @import("scorer.zig").Scorer;
+const Input = @import("input.zig").Input;
 
 const TextureLoader = @import("texture_loader.zig").TextureLoader;
 const SoundLoader = @import("audio.zig").SoundLoader;
@@ -73,7 +74,9 @@ pub const Player = struct {
 
     scorer: *Scorer,
 
-    pub fn init(texture_loader: *TextureLoader, sound_loader: *SoundLoader, scorer: *Scorer) !@This() {
+    input: *Input,
+
+    pub fn init(texture_loader: *TextureLoader, sound_loader: *SoundLoader, scorer: *Scorer, input: *Input) !@This() {
         return .{
             .x = 16,
             .y = 16,
@@ -109,6 +112,8 @@ pub const Player = struct {
 
             .sound_loader = sound_loader,
             .scorer = scorer,
+
+            .input = input,
         };
     }
 
@@ -395,24 +400,25 @@ pub const Player = struct {
         self.animation = .EaseOutElastic;
         self.scorer.process_pickup_speed_muliplier_timer(delta);
 
-        if (rl.isKeyPressed(.right)) {
-            self.move(.right);
-        } else if (rl.isKeyPressed(.left)) {
+        if (self.input.is_action_pressed(.move_left)) {
             self.move(.left);
-        } else if (rl.isKeyPressed(.up)) {
+        } else if (self.input.is_action_pressed(.move_right)) {
+            self.move(.right);
+        } else if (self.input.is_action_pressed(.move_up)) {
             self.move(.up);
-        } else if (rl.isKeyPressed(.down)) {
+        } else if (self.input.is_action_pressed(.move_down)) {
             self.move(.down);
         }
 
         var action_direction: ?Direction = null;
-        if (rl.isKeyPressed(.a)) {
+
+        if (self.input.is_action_pressed(.attack_left)) {
             action_direction = .left;
-        } else if (rl.isKeyPressed(.d)) {
+        } else if (self.input.is_action_pressed(.attack_right)) {
             action_direction = .right;
-        } else if (rl.isKeyPressed(.w)) {
+        } else if (self.input.is_action_pressed(.attack_up)) {
             action_direction = .up;
-        } else if (rl.isKeyPressed(.s)) {
+        } else if (self.input.is_action_pressed(.attack_down)) {
             action_direction = .down;
         }
 

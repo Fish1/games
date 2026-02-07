@@ -12,6 +12,7 @@ const TextureLoader = @import("texture_loader.zig").TextureLoader;
 const FontLoader = @import("font_loader.zig").FontLoader;
 const SoundLoader = @import("audio.zig").SoundLoader;
 const MusicLoader = @import("audio.zig").MusicLoader;
+const Input = @import("input.zig").Input;
 
 const SoundQueue = @import("audio.zig").SoundQueue;
 
@@ -80,11 +81,13 @@ pub fn main() !void {
     var buffer: [512]u8 = undefined;
     const ui_drawer = UIDrawer.init(&buffer, &texture_loader, &font_loader);
 
+    var input = Input.init();
+
     music_loader.play(.full_song, 0.0, 1.0);
 
     var scorer: Scorer = Scorer.init();
     var map: Map = try Map.init(&texture_loader, &sound_loader, &music_loader, &scorer);
-    var player: Player = try Player.init(&texture_loader, &sound_loader, &scorer);
+    var player: Player = try Player.init(&texture_loader, &sound_loader, &scorer, &input);
     var spawner: Spawner = Spawner.init(&map, &player, &difficulty, &scorer);
 
     while (rl.windowShouldClose() == false) {
@@ -97,8 +100,8 @@ pub fn main() !void {
     }
 }
 
-fn main_menu_state(ui_drawer: UIDrawer, ui_sound_queue: *SoundQueue, sound_loader: *SoundLoader, state: *State, map: *Map, difficulty: *Difficulty) void {
-    if (rl.isKeyPressed(.space)) {
+fn main_menu_state(ui_drawer: UIDrawer, ui_sound_queue: *SoundQueue, sound_loader: *SoundLoader, state: *State, map: *Map, difficulty: *Difficulty, input: *Input) void {
+    if (input.is_action_pressed(.start_game)) {
         state.* = .game;
     }
 
